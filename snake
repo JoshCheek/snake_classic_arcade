@@ -156,22 +156,23 @@ end
 quit = false
 
 # read them inputs
+input_handler = updater = nil
+
 input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
-    begin
-      case $stdin.read_nonblock(1)
-      when ?\C-c, ?\C-d, ?q then quit  = true
-      when ?h               then snake = snake.face -1 + 0i
-      when ?l               then snake = snake.face  1 + 0i
-      when ?j               then snake = snake.face  0 + 1i # backwards b/c origin is top-right
-      when ?k               then snake = snake.face  0 - 1i
-      else                       # noop
-      end
-    rescue IO::WaitReadable
-      # no input available
+    IO.select [$stdin]
+    valid_inputs = $stdin.readpartial(4096).scan(/\e\[[ABCD]|[hjklq#{?\C-c}#{?\C-d}]/)
+    case valid_inputs.last
+    when ?\C-c, ?\C-d, ?q then quit  = true
+    when ?h, "\e[D"       then snake = snake.face -1 + 0i
+    when ?l, "\e[C"       then snake = snake.face  1 + 0i
+    when ?j, "\e[B"       then snake = snake.face  0 + 1i # backwards b/c origin is top-right
+    when ?k, "\e[A"       then snake = snake.face  0 - 1i
+    else                       # noop
     end
   end
+  updater.kill if quit
 end
 
 
@@ -199,10 +200,10 @@ updater = Thread.new do
     board[snake.position] = snake
     print "#{to *snake}#{snake}" unless snake.expired?
   end
+  input_handler.kill
 end
 
 input_handler.join
-updater.kill if quit # don't wait for it to finish sleeping
 updater.join
 
 puts to(rows, 1)
