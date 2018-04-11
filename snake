@@ -35,16 +35,23 @@ end
 # some fkn classes, yo
 Item = Struct.new :duration, :obstructs, :to_s do
   alias obstructs? obstructs
+
   def expired?
     duration <= 0
   end
+
   def tick_tock
     Item.new duration-1, obstructs, to_s
+  end
+
+  def food?
+    false
   end
 end
 
 WALL  = Item.new Float::INFINITY, true,  BLUE
 FLOOR = Item.new Float::INFINITY, false, BLACK
+
 
 class Snake < Item
   attr_reader :position, :direction
@@ -72,6 +79,10 @@ class Snake < Item
     self.class.new position, direction.rotate_right, length, to_s
   end
 
+  def grow(n)
+    self.class.new position, direction, length+n, to_s
+  end
+
   def to_a
     position
   end
@@ -82,6 +93,24 @@ class Snake < Item
 
   def expired?
     @expired
+  end
+end
+
+
+class Food < Item
+  # FIXME: do I need a position?
+  attr_reader :position
+
+  def initialize(position, to_s)
+    @position = position
+    super Float::INFINITY, false, to_s
+  end
+
+  def food?
+    true
+  end
+  def tick_tock
+    Food.new duration-1, to_s
   end
 end
 
@@ -100,13 +129,30 @@ end
 
 
 # mah snake!
-snake = Snake.new [rows.succ/2, cols.succ/2], -1+0i, 3, WHITE
+snake = Snake.new [rows.succ/2, cols.succ/2], -1+0i, 4, WHITE
 
 # mah board!
 board = Hash.new FLOOR
 board[snake.position] = snake
 rows.times { |y| board[[y+1, 1]] = board[[y+1, cols]] = WALL }
 cols.times { |x| board[[1, x+1]] = board[[rows, x+1]] = WALL }
+
+# gotsta get fed
+last_food_pos = nil
+define_method :mas_comida_por_favor! do
+  position = loop do
+    y = rand(rows).succ
+    x = rand(cols).succ
+    p = [y, x]
+    i = board[p]
+    break p if FLOOR == i
+  end
+  last_food_pos = position
+  food = Food.new position, MAGENTA
+  board[position] = food
+  position
+end
+mas_comida_por_favor!
 
 # print the initial board
 print "\e[H"
@@ -122,6 +168,10 @@ input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
     begin
+      # really, this should not allow you to rotate into your current head
+      # you can do this b/c you can do left 2 times, before it's updated
+      # probably the way to handle it is to read all input and only use
+      # the last input (ie most recent keypress overrides previous ones)
       input = $stdin.read_nonblock(1)
       case input
       when ?\C-c, ?\C-d, ?q then quit  = true
@@ -135,20 +185,35 @@ input_handler = Thread.new do
   end
 end
 
+
 updater = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
-    sleep snake.length.to_f / 10
+    # https://en.wikipedia.org/wiki/Logistic_function
+    speed = 0.4
+    sleep -2.0 / (1 + Math::E**(-speed*snake.length)) + 2
 
-    to_delete, next_board = board.map { |pos, item| [pos, item.tick_tock] }
-                                 .partition { |_, item| item.expired? }
-    board                 = next_board.to_h
-    snake                 = snake.slither
-    board[snake.position] = snake
+    items                 = board.map { |pos, item| [pos, item.tick_tock] }
+    to_delete, next_board = items.partition { |_, item| item.expired? }
+    board                 = next_board.to_h.tap { |h| h.default = board.default }
+
     to_delete.each { |position, item| print "#{to *position}#{FLOOR}  " }
+
+    snake   = snake.slither
+    current = board[snake.position]
+    if current.obstructs?
+      quit = true
+    elsif current.food?
+      snake = snake.grow 1
+      pos   = mas_comida_por_favor!
+      print "#{to *pos}#{board[pos]}  "
+    end
+    board[snake.position] = snake
     print "#{to *snake}#{snake}  "
+    print "#{to 1, 1} y: #{snake.position[0]}, x:#{snake.position[1]}, len: #{snake.length}, dead: #{snake.expired?}, food: #{last_food_pos.inspect}"
   end
 end
 
 input_handler.join
+updater.kill if quit
 updater.join
