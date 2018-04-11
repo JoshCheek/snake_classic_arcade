@@ -53,9 +53,6 @@ Item = Struct.new :type, :duration, :obstructs, :str do
   end
 end
 
-WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
-FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
-
 class Food < Item
   def initialize(**rest)
     super type: :food, **rest
@@ -125,12 +122,14 @@ $stdin.raw!;       at_exit { $stdin.cooked! }
 print HIDE_CURSOR; at_exit { print SHOW_CURSOR }
 
 
-# mah snake!
+# mah board items
+WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
+FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
+FOOD  = Food.new str: "#{MAGENTA}  "
 snake = Snake.new position:  cols.succ/2 + rows.succ/2*1i,
                   direction: -1+0i,
                   length:    4,
                   str:       "#{WHITE}  "
-
 # mah board!
 board = Hash.new FLOOR
 board[snake.position] = snake
@@ -143,7 +142,7 @@ define_method :mas_comida_por_favor! do
     p = rand(cols).succ + rand(rows).succ*1i
     break p if FLOOR == board[p]
   end
-  board[position] = Food.new str: "#{MAGENTA}  "
+  board[position] = FOOD
   position
 end
 mas_comida_por_favor!
