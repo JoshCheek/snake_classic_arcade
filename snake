@@ -1,3 +1,154 @@
 #!/usr/bin/env ruby
 
-puts "hello world"
+# ANSI stuffs!
+BLACK   = "\e[40m"
+RED     = "\e[41m"
+GREEN   = "\e[42m"
+YELLOW  = "\e[43m"
+BLUE    = "\e[44m"
+MAGENTA = "\e[45m"
+TEAL    = "\e[46m"
+WHITE   = "\e[47m"
+
+HIDE_CURSOR = "\e[?25l"
+SHOW_CURSOR = "\e[?25h"
+
+def to(y, x)
+  "\e[#{y};#{x*2-1}H"
+end
+
+# best practices :P
+class Complex
+  alias y imaginary
+  alias x real
+
+  # backwards, b/c, cartesian origin is bottom-left, but ANSI origin is top-left
+  def rotate_left
+    self * -1i
+  end
+
+  def rotate_right
+    self * 1i
+  end
+end
+
+# some fkn classes, yo
+Item = Struct.new :duration, :obstructs, :to_s do
+  alias obstructs? obstructs
+  def expired?
+    duration <= 0
+  end
+  def tick_tock
+    Item.new duration-1, obstructs, to_s
+  end
+end
+
+WALL  = Item.new Float::INFINITY, true,  BLUE
+FLOOR = Item.new Float::INFINITY, false, BLACK
+
+class Snake < Item
+  attr_reader :position, :direction
+
+  alias length duration
+
+  def initialize(position, direction, length, to_s)
+    @position  = position
+    @direction = direction
+    @expired   = false
+    super length, true, to_s
+  end
+
+  def slither
+    y, x = position()
+    position = [y + direction.y, x + direction.x]
+    self.class.new position, direction, length, to_s
+  end
+
+  def rotate_left
+    self.class.new position, direction.rotate_left, length, to_s
+  end
+
+  def rotate_right
+    self.class.new position, direction.rotate_right, length, to_s
+  end
+
+  def to_a
+    position
+  end
+
+  def die!
+    @expired = true
+  end
+
+  def expired?
+    @expired
+  end
+end
+
+
+# ANSI terminal setup
+require 'io/console'
+rows, cols = $stdin.winsize
+cols /= 2 # each location will take 2 cols
+$stdin.raw!
+print HIDE_CURSOR
+at_exit do
+  $stdin.cooked!
+  print SHOW_CURSOR
+end
+
+
+
+# mah snake!
+snake = Snake.new [rows.succ/2, cols.succ/2], -1+0i, 3, WHITE
+
+# mah board!
+board = Hash.new FLOOR
+board[snake.position] = snake
+rows.times { |y| board[[y+1, 1]] = board[[y+1, cols]] = WALL }
+cols.times { |x| board[[1, x+1]] = board[[rows, x+1]] = WALL }
+
+# print the initial board
+print "\e[H"
+1.upto rows do |y|
+  1.upto cols do |x|
+    print "#{to y, x}#{board[[y, x]]}  "
+  end
+end
+
+quit = false
+
+input_handler = Thread.new do
+  Thread.abort_on_exception = true
+  until snake.expired? || quit
+    begin
+      input = $stdin.read_nonblock(1)
+      case input
+      when ?\C-c, ?\C-d, ?q then quit  = true
+      when ?h               then snake = snake.rotate_left
+      when ?l               then snake = snake.rotate_right
+      else                       # noop
+      end
+    rescue IO::WaitReadable
+      # no input available
+    end
+  end
+end
+
+updater = Thread.new do
+  Thread.abort_on_exception = true
+  until snake.expired? || quit
+    sleep snake.length.to_f / 10
+
+    to_delete, next_board = board.map { |pos, item| [pos, item.tick_tock] }
+                                 .partition { |_, item| item.expired? }
+    board                 = next_board.to_h
+    snake                 = snake.slither
+    board[snake.position] = snake
+    to_delete.each { |position, item| print "#{to *position}#{FLOOR}  " }
+    print "#{to *snake}#{snake}  "
+  end
+end
+
+input_handler.join
+updater.join
