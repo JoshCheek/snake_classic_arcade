@@ -53,8 +53,8 @@ Item = Struct.new :type, :duration, :obstructs, :str do
   end
 end
 
-WALL  = Item.new type: :wall,  obstructs: true,  str: BLUE
-FLOOR = Item.new type: :floor, obstructs: false, str: BLACK
+WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
+FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
 
 class Food < Item
   def initialize(**rest)
@@ -129,7 +129,7 @@ print HIDE_CURSOR; at_exit { print SHOW_CURSOR }
 snake = Snake.new position:  cols.succ/2 + rows.succ/2*1i,
                   direction: -1+0i,
                   length:    4,
-                  str:       WHITE
+                  str:       "#{WHITE}  "
 
 # mah board!
 board = Hash.new FLOOR
@@ -143,7 +143,7 @@ define_method :mas_comida_por_favor! do
     p = rand(cols).succ + rand(rows).succ*1i
     break p if FLOOR == board[p]
   end
-  board[position] = Food.new str: MAGENTA
+  board[position] = Food.new str: "#{MAGENTA}  "
   position
 end
 mas_comida_por_favor!
@@ -151,7 +151,7 @@ mas_comida_por_favor!
 # print the initial board
 1.upto rows do |y|
   1.upto cols do |x|
-    print "#{to y, x}#{board[x + y*1i]}  "
+    print "#{to y, x}#{board[x + y*1i]}"
   end
 end
 
@@ -187,7 +187,7 @@ updater = Thread.new do
     to_delete, next_items = items.partition { |_, item| item.expired? }
     board                 = next_items.to_h.tap { |h| h.default = board.default }
 
-    to_delete.each { |position, item| print "#{to *position}#{FLOOR}  " }
+    to_delete.each { |position, item| print "#{to *position}#{FLOOR}" }
 
     snake   = snake.slither
     current = board[snake.position]
@@ -196,10 +196,10 @@ updater = Thread.new do
     elsif current.food?
       snake = snake.grow 3
       pos   = mas_comida_por_favor!
-      print "#{to *pos}#{board[pos]}  "
+      print "#{to *pos}#{board[pos]}"
     end
     board[snake.position] = snake
-    print "#{to *snake}#{snake}  " unless snake.expired?
+    print "#{to *snake}#{snake}" unless snake.expired?
   end
 end
 
