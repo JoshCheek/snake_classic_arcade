@@ -194,7 +194,7 @@ updater = Thread.new do
     snake   = snake.slither
     current = board[snake.position]
     if current.obstructs?
-      quit = true
+      snake.die!
     elsif current.food?
       snake = snake.grow 3
       pos   = mas_comida_por_favor!
@@ -206,5 +206,7 @@ updater = Thread.new do
 end
 
 input_handler.join
-updater.kill if quit
+updater.kill if quit # don't wait for it to finish sleeping
 updater.join
+
+puts to(rows, 1)
