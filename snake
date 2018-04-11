@@ -25,29 +25,40 @@ class Complex
 end
 
 # some fkn classes, yo
-Item = Struct.new :type, :duration, :obstructs, :to_s do
+Item = Struct.new :type, :duration, :obstructs, :str do
   alias obstructs? obstructs
+  alias to_s       str
+
+  def initialize(type:, duration: Float::INFINITY, obstructs: false, str:)
+    super type, duration, obstructs, str
+  end
 
   def expired?
     duration <= 0
   end
 
   def tick_tock
-    Item.new type, duration-1, obstructs, to_s
+    new duration: duration-1
   end
 
   def food?()  type == :food  end
   def wall?()  type == :wall  end
   def floor?() type == :floor end
   def snake?() type == :snake end
+
+  private
+
+  def new(**overrides)
+    self.class.new(to_h.merge overrides)
+  end
 end
 
-WALL  = Item.new :wall,  Float::INFINITY, true,  BLUE
-FLOOR = Item.new :floor, Float::INFINITY, false, BLACK
+WALL  = Item.new type: :wall,  obstructs: true,  str: BLUE
+FLOOR = Item.new type: :floor, obstructs: false, str: BLACK
 
 class Food < Item
-  def initialize(to_s)
-    super :food, Float::INFINITY, false, to_s
+  def initialize(**rest)
+    super type: :food, **rest
   end
 
   def food?
@@ -62,28 +73,34 @@ end
 
 class Snake < Item
   attr_reader :position, :direction, :next_direction, :expired
-
-  alias expired? expired
   alias length   duration
 
-  def initialize(position, direction, next_direction, expired, length, to_s)
+  def initialize(position:, direction:, next_direction:nil, expired:false, length:nil, **rest)
     @position, @direction, @next_direction, @expired =
-      position, direction, next_direction, expired
-    super :snake, length, true, to_s
+     position,  direction,  next_direction,  expired
+    rest[:duration] = length || rest[:duration]
+    super type: :snake, obstructs: true, **rest
+  end
+
+  def to_h
+    super.merge position:       position,
+                direction:      direction,
+                next_direction: next_direction,
+                expired:        expired
   end
 
   def slither
     dir = next_direction || direction
     dir = direction if dir == -direction
-    self.class.new position+dir, dir, nil, expired, length, to_s
+    new position: position+dir, direction: dir
   end
 
   def face(direction)
-    self.class.new position, direction(), direction, expired, length, to_s
+    new next_direction: direction
   end
 
   def grow(n)
-    self.class.new position, direction, next_direction, expired, length+n, to_s
+    new length: length+n
   end
 
   def to_a
@@ -91,7 +108,11 @@ class Snake < Item
   end
 
   def die
-    self.class.new position, direction, next_direction, true, length, to_s
+    new expired: true
+  end
+
+  def expired?
+    expired || super
   end
 end
 
@@ -110,7 +131,10 @@ end
 
 
 # mah snake!
-snake = Snake.new cols.succ/2 + rows.succ/2*1i, -1+0i, nil, false, 4, WHITE
+snake = Snake.new position:  cols.succ/2 + rows.succ/2*1i,
+                  direction: -1+0i,
+                  length:    4,
+                  str:       WHITE
 
 # mah board!
 board = Hash.new FLOOR
@@ -127,7 +151,7 @@ define_method :mas_comida_por_favor! do
     i = board[p]
     break p if FLOOR == i
   end
-  board[position] = Food.new MAGENTA
+  board[position] = Food.new str: MAGENTA
   position
 end
 mas_comida_por_favor!
