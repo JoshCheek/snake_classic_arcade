@@ -71,12 +71,10 @@ class Snake < Item
     self.class.new position, direction, length, to_s
   end
 
-  def rotate_left
-    self.class.new position, direction.rotate_left, length, to_s
-  end
-
-  def rotate_right
-    self.class.new position, direction.rotate_right, length, to_s
+  def face(direction)
+    # can't face the direction you came from
+    return self if direction() == -direction
+    self.class.new position, direction, length, to_s
   end
 
   def grow(n)
@@ -168,15 +166,13 @@ input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
     begin
-      # really, this should not allow you to rotate into your current head
-      # you can do this b/c you can do left 2 times, before it's updated
-      # probably the way to handle it is to read all input and only use
-      # the last input (ie most recent keypress overrides previous ones)
       input = $stdin.read_nonblock(1)
       case input
       when ?\C-c, ?\C-d, ?q then quit  = true
-      when ?h               then snake = snake.rotate_left
-      when ?l               then snake = snake.rotate_right
+      when ?h               then snake = snake.face -1 + 0i
+      when ?l               then snake = snake.face  1 + 0i
+      when ?j               then snake = snake.face  0 + 1i # backwards b/c origin is top-right
+      when ?k               then snake = snake.face  0 - 1i
       else                       # noop
       end
     rescue IO::WaitReadable
