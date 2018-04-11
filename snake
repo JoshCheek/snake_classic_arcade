@@ -196,7 +196,7 @@ updater = Thread.new do
     if current.obstructs?
       quit = true
     elsif current.food?
-      snake = snake.grow 1
+      snake = snake.grow 3
       pos   = mas_comida_por_favor!
       print "#{to *pos}#{board[pos]}  "
     end
