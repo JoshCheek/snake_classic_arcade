@@ -49,9 +49,11 @@ class Food < Item
   def initialize(to_s)
     super :food, Float::INFINITY, false, to_s
   end
+
   def food?
     true
   end
+
   def tick_tock
     self
   end
@@ -61,7 +63,8 @@ end
 class Snake < Item
   attr_reader :position, :direction, :next_direction, :expired
 
-  alias length duration
+  alias expired? expired
+  alias length   duration
 
   def initialize(position, direction, next_direction, expired, length, to_s)
     @position, @direction, @next_direction, @expired =
@@ -89,10 +92,6 @@ class Snake < Item
 
   def die
     self.class.new position, direction, next_direction, true, length, to_s
-  end
-
-  def expired?
-    @expired
   end
 end
 
@@ -134,7 +133,6 @@ end
 mas_comida_por_favor!
 
 # print the initial board
-print "\e[H"
 1.upto rows do |y|
   1.upto cols do |x|
     print "#{to y, x}#{board[x + y*1i]}  "
@@ -149,8 +147,7 @@ input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
     begin
-      input = $stdin.read_nonblock(1)
-      case input
+      case $stdin.read_nonblock(1)
       when ?\C-c, ?\C-d, ?q then quit  = true
       when ?h               then snake = snake.face -1 + 0i
       when ?l               then snake = snake.face  1 + 0i
@@ -171,8 +168,8 @@ updater = Thread.new do
     sleep 0.08
 
     items                 = board.map { |pos, item| [pos, item.tick_tock] }
-    to_delete, next_board = items.partition { |_, item| item.expired? }
-    board                 = next_board.to_h.tap { |h| h.default = board.default }
+    to_delete, next_items = items.partition { |_, item| item.expired? }
+    board                 = next_items.to_h.tap { |h| h.default = board.default }
 
     to_delete.each { |position, item| print "#{to *position}#{FLOOR}  " }
 
