@@ -87,19 +87,16 @@ end
 
 
 class Food < Item
-  # FIXME: do I need a position?
-  attr_reader :position
-
-  def initialize(position, to_s)
-    @position = position
+  def initialize(to_s)
     super Float::INFINITY, false, to_s
   end
 
   def food?
     true
   end
+
   def tick_tock
-    Food.new duration-1, to_s
+    self
   end
 end
 
@@ -135,8 +132,7 @@ define_method :mas_comida_por_favor! do
     i = board[p]
     break p if FLOOR == i
   end
-  food = Food.new position, MAGENTA
-  board[position] = food
+  board[position] = Food.new MAGENTA
   position
 end
 mas_comida_por_favor!
