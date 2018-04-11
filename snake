@@ -57,14 +57,6 @@ class Food < Item
   def initialize(**rest)
     super type: :food, **rest
   end
-
-  def food?
-    true
-  end
-
-  def tick_tock
-    self
-  end
 end
 
 
