@@ -25,7 +25,7 @@ class Complex
 end
 
 # some fkn classes, yo
-Item = Struct.new :duration, :obstructs, :to_s do
+Item = Struct.new :type, :duration, :obstructs, :to_s do
   alias obstructs? obstructs
 
   def expired?
@@ -33,16 +33,29 @@ Item = Struct.new :duration, :obstructs, :to_s do
   end
 
   def tick_tock
-    Item.new duration-1, obstructs, to_s
+    Item.new type, duration-1, obstructs, to_s
   end
 
-  def food?
-    false
-  end
+  def food?()  type == :food  end
+  def wall?()  type == :wall  end
+  def floor?() type == :floor end
+  def snake?() type == :snake end
 end
 
-WALL  = Item.new Float::INFINITY, true,  BLUE
-FLOOR = Item.new Float::INFINITY, false, BLACK
+WALL  = Item.new :wall,  Float::INFINITY, true,  BLUE
+FLOOR = Item.new :floor, Float::INFINITY, false, BLACK
+
+class Food < Item
+  def initialize(to_s)
+    super :food, Float::INFINITY, false, to_s
+  end
+  def food?
+    true
+  end
+  def tick_tock
+    self
+  end
+end
 
 
 class Snake < Item
@@ -54,7 +67,7 @@ class Snake < Item
     @position  = position
     @direction = direction
     @expired   = false
-    super length, true, to_s
+    super :snake, length, true, to_s
   end
 
   def slither
@@ -82,21 +95,6 @@ class Snake < Item
 
   def expired?
     @expired
-  end
-end
-
-
-class Food < Item
-  def initialize(to_s)
-    super Float::INFINITY, false, to_s
-  end
-
-  def food?
-    true
-  end
-
-  def tick_tock
-    self
   end
 end
 
