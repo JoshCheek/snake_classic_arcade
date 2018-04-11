@@ -189,9 +189,7 @@ end
 updater = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
-    # https://en.wikipedia.org/wiki/Logistic_function
-    speed = 0.4
-    sleep -2.0 / (1 + Math::E**(-speed*snake.length)) + 2
+    sleep 0.08
 
     items                 = board.map { |pos, item| [pos, item.tick_tock] }
     to_delete, next_board = items.partition { |_, item| item.expired? }
