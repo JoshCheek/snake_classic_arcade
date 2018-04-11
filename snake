@@ -121,13 +121,8 @@ end
 require 'io/console'
 rows, cols = $stdin.winsize
 cols /= 2 # each location will take 2 cols
-$stdin.raw!
-print HIDE_CURSOR
-at_exit do
-  $stdin.cooked!
-  print SHOW_CURSOR
-end
-
+$stdin.raw!;       at_exit { $stdin.cooked! }
+print HIDE_CURSOR; at_exit { print SHOW_CURSOR }
 
 
 # mah snake!
@@ -145,11 +140,8 @@ cols.times { |x| board[x+1 + 1i] = board[x+1 + rows*1i] = WALL }
 # gotsta get fed
 define_method :mas_comida_por_favor! do
   position = loop do
-    y = rand(rows).succ
-    x = rand(cols).succ
-    p = x + y*1i
-    i = board[p]
-    break p if FLOOR == i
+    p = rand(cols).succ + rand(rows).succ*1i
+    break p if FLOOR == board[p]
   end
   board[position] = Food.new str: MAGENTA
   position
