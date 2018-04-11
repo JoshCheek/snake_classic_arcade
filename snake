@@ -137,15 +137,13 @@ rows.times { |y| board[1 + (y+1)*1i] = board[cols + (y+1)*1i] = WALL }
 cols.times { |x| board[x+1 + 1i] = board[x+1 + rows*1i] = WALL }
 
 # gotsta get fed
-define_method :mas_comida_por_favor! do
-  position = loop do
+define_method :find_a_place_to_stash_some_food! do
+  loop do
     p = rand(cols).succ + rand(rows).succ*1i
     break p if FLOOR == board[p]
   end
-  board[position] = FOOD
-  position
 end
-mas_comida_por_favor!
+board[find_a_place_to_stash_some_food!] = FOOD
 
 # print the initial board
 1.upto rows do |y|
@@ -193,8 +191,9 @@ updater = Thread.new do
     if current.obstructs?
       snake = snake.die
     elsif current.food?
-      snake = snake.grow 3
-      pos   = mas_comida_por_favor!
+      snake      = snake.grow 3
+      pos        = find_a_place_to_stash_some_food!
+      board[pos] = FOOD
       print "#{to *pos}#{board[pos]}"
     end
     board[snake.position] = snake
