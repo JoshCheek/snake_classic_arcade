@@ -21,9 +21,7 @@ end
 class Complex
   alias y imaginary
   alias x real
-  def to_a
-    [y, x]
-  end
+  def to_a() [y, x] end
 end
 
 # some fkn classes, yo
@@ -60,13 +58,14 @@ class Snake < Item
   end
 
   def slither
-    self.class.new position+direction, direction, length, to_s
+    next_direction = @next_direction || direction
+    next_direction = direction if next_direction == -direction
+    self.class.new position+next_direction, next_direction, length, to_s
   end
 
   def face(direction)
-    # can't face the direction you came from
-    return self if direction() == -direction
-    self.class.new position, direction, length, to_s
+    @next_direction = direction
+    self
   end
 
   def grow(n)
@@ -150,8 +149,10 @@ print "\e[H"
   end
 end
 
+# game can end without the snake dying
 quit = false
 
+# read them inputs
 input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
