@@ -17,7 +17,13 @@ def to(y, x)
   "\e[#{y};#{x*2-1}H"
 end
 
-# some fkn classes, yo
+# directions
+UP    = [-1,  0] # origin on the terminal is at the top-right, so -y to go down
+DOWN  = [ 1,  0]
+LEFT  = [ 0, -1]
+RIGHT = [ 0,  1]
+
+# some classes, yo!!
 Item = Struct.new :type, :duration, :obstructs, :str do
   alias obstructs? obstructs
   alias to_s       str
@@ -100,7 +106,7 @@ WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
 FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
 FOOD  = Item.new type: :food,  obstructs: false, str: "#{MAGENTA}  "
 snake = Snake.new position:  [rows.succ/2, cols.succ/2],
-                  direction: [0, -1], # left
+                  direction: LEFT,
                   length:    4,
                   str:       "#{WHITE}  "
 # mah board!
@@ -137,10 +143,10 @@ input_handler = Thread.new do
     valid_inputs = $stdin.readpartial(4096).scan(/\e\[[ABCD]|[hjklq#{?\C-c}#{?\C-d}]/)
     case valid_inputs.last
     when ?\C-c, ?\C-d, ?q then quit  = true
-    when ?h, "\e[D"       then snake = snake.face [ 0, -1] # left
-    when ?l, "\e[C"       then snake = snake.face [ 0,  1] # right
-    when ?k, "\e[A"       then snake = snake.face [-1,  0] # up (-i seems like it should be down, but origin on the terminal is at the top-right)
-    when ?j, "\e[B"       then snake = snake.face [ 1,  0] # down
+    when ?h, "\e[D"       then snake = snake.face LEFT
+    when ?l, "\e[C"       then snake = snake.face RIGHT
+    when ?k, "\e[A"       then snake = snake.face UP
+    when ?j, "\e[B"       then snake = snake.face DOWN
     else                       # noop
     end
   end
