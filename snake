@@ -41,21 +41,10 @@ Item = Struct.new :type, :duration, :obstructs, :str do
     new duration: duration-1
   end
 
-  def food?()  type == :food  end
-  def wall?()  type == :wall  end
-  def floor?() type == :floor end
-  def snake?() type == :snake end
-
   private
 
   def new(**overrides)
     self.class.new(to_h.merge overrides)
-  end
-end
-
-class Food < Item
-  def initialize(**rest)
-    super type: :food, **rest
   end
 end
 
@@ -117,7 +106,7 @@ print HIDE_CURSOR; at_exit { print SHOW_CURSOR }
 # mah board items
 WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
 FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
-FOOD  = Food.new str: "#{MAGENTA}  "
+FOOD  = Item.new type: :food,  obstructs: false, str: "#{MAGENTA}  "
 snake = Snake.new position:  cols.succ/2 + rows.succ/2*1i,
                   direction: -1+0i,
                   length:    4,
@@ -132,7 +121,7 @@ cols.times { |x| board[x+1 + 1i] = board[x+1 + rows*1i] = WALL }
 define_method :find_a_place_to_stash_some_food! do
   loop do
     p = rand(cols).succ + rand(rows).succ*1i
-    break p if FLOOR == board[p]
+    break p if board[p] == FLOOR
   end
 end
 board[find_a_place_to_stash_some_food!] = FOOD
@@ -146,10 +135,9 @@ end
 
 # game can end without the snake dying
 quit = false
-
-# read them inputs
 input_handler = updater = nil
 
+# read them inputs
 input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
@@ -157,14 +145,14 @@ input_handler = Thread.new do
     valid_inputs = $stdin.readpartial(4096).scan(/\e\[[ABCD]|[hjklq#{?\C-c}#{?\C-d}]/)
     case valid_inputs.last
     when ?\C-c, ?\C-d, ?q then quit  = true
-    when ?h, "\e[D"       then snake = snake.face -1 + 0i
-    when ?l, "\e[C"       then snake = snake.face  1 + 0i
-    when ?j, "\e[B"       then snake = snake.face  0 + 1i # backwards b/c origin is top-right
-    when ?k, "\e[A"       then snake = snake.face  0 - 1i
+    when ?h, "\e[D"       then snake = snake.face -1 + 0i # left
+    when ?l, "\e[C"       then snake = snake.face  1 + 0i # right
+    when ?k, "\e[A"       then snake = snake.face  0 - 1i # up (-i seems like it should be down, but origin on the terminal is at the top-right)
+    when ?j, "\e[B"       then snake = snake.face  0 + 1i # down
     else                       # noop
     end
   end
-  updater.kill if quit
+  updater.kill
 end
 
 
@@ -173,18 +161,18 @@ updater = Thread.new do
   until snake.expired? || quit
     sleep 0.08
 
-    items                 = board.map { |pos, item| [pos, item.tick_tock] }
-    to_delete, next_items = items.partition { |_, item| item.expired? }
-    board                 = next_items.to_h.tap { |h| h.default = board.default }
+    expireds, items = board.map { |pos, item| [pos, item.tick_tock] }
+                           .partition { |_, i| i.expired? }
+    board = items.to_h.tap { |h| h.default = board.default }
 
-    to_delete.each { |position, item| print "#{to *position}#{FLOOR}" }
+    expireds.each { |position, _| print "#{to *position}#{FLOOR}" }
 
     snake   = snake.slither
     current = board[snake.position]
     if current.obstructs?
       snake = snake.die
-    elsif current.food?
-      snake      = snake.grow 3
+    elsif current == FOOD
+      snake      = snake.grow 7
       pos        = find_a_place_to_stash_some_food!
       board[pos] = FOOD
       print "#{to *pos}#{board[pos]}"
