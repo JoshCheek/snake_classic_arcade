@@ -17,7 +17,13 @@ def to(y, x)
   "\e[#{y};#{x*2-1}H"
 end
 
-# best practices :P
+# Our positions will be complex numbers. Normally, we think of numbers as being
+# on a "number line", but if we instead thought of them as being on a "number grid",
+# then we would need to add an additional axis to our number line. That's what
+# complex numbers do, the number line is called the "real" part, and will be
+# our "x" coordinate. The new axis is called the "imaginary" part, and will be
+# our "y" coordinate. This was more useful when I thought the snake was going
+# to need to turn relative to a current setting, now it's not very relevant.
 class Complex
   alias y imaginary
   alias x real
