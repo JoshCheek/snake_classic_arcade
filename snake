@@ -17,13 +17,29 @@ def to(y, x)
   "\e[#{y};#{x*2-1}H"
 end
 
-# directions
-UP    = [-1,  0] # origin on the terminal is at the top-right, so -y to go down
-DOWN  = [ 1,  0]
-LEFT  = [ 0, -1]
-RIGHT = [ 0,  1]
+# position / directions
+Position = Struct.new :y, :x do
+  alias to_hash to_h
 
-# some classes, yo!!
+  def -@
+    Position.new -y, -x
+  end
+
+  def +(pos)
+    Position.new y+pos.y, x+pos.x
+  end
+end
+
+def pos(y, x)
+  Position.new y, x
+end
+UP    = pos -1,  0 # origin on the terminal is at the top-right, so -y to go down
+DOWN  = pos  1,  0
+LEFT  = pos  0, -1
+RIGHT = pos  0,  1
+
+
+# Things to put on the game board!
 Item = Struct.new :type, :duration, :obstructs, :str do
   alias obstructs? obstructs
   alias to_s       str
@@ -49,13 +65,16 @@ end
 class Snake < Item
   attr_reader :position, :direction, :next_direction, :expired
   alias length duration
-  alias to_a   position
 
   def initialize(position:, direction:, next_direction:nil, expired:false, length:nil, **rest)
     @position, @direction, @next_direction,            @expired =
      position,  direction,  next_direction||direction,  expired
     rest[:duration] = length || rest[:duration]
     super type: :snake, obstructs: true, **rest
+  end
+
+  def to_a
+    position.to_a
   end
 
   def to_h
@@ -66,12 +85,11 @@ class Snake < Item
   end
 
   def slither
-    (y, x), (∆y, ∆x) = position, next_direction
-    new position: [y+∆y, x+∆x], direction: next_direction
+    new position: position+next_direction, direction: next_direction
   end
 
   def face(direction)
-    return self if opposite_directions? direction, direction()
+    return self if direction() == -direction
     new next_direction: direction
   end
 
@@ -85,10 +103,6 @@ class Snake < Item
 
   def expired?
     expired || super
-  end
-
-  private def opposite_directions?((y1, x1), (y2, x2))
-    y1 == -y2 && x1 == -x2
   end
 end
 
@@ -105,20 +119,20 @@ print HIDE_CURSOR; at_exit { print SHOW_CURSOR }
 WALL  = Item.new type: :wall,  obstructs: true,  str: "#{BLUE}  "
 FLOOR = Item.new type: :floor, obstructs: false, str: "#{BLACK}  "
 FOOD  = Item.new type: :food,  obstructs: false, str: "#{MAGENTA}  "
-snake = Snake.new position:  [rows.succ/2, cols.succ/2],
+snake = Snake.new position:  pos(rows.succ/2, cols.succ/2),
                   direction: LEFT,
                   length:    4,
                   str:       "#{WHITE}  "
 # mah board!
 board = Hash.new FLOOR
 board[snake.position] = snake
-rows.times { |y| board[[y+1, 1]] = board[[y+1, cols]] = WALL }
-cols.times { |x| board[[1, x+1]] = board[[rows, x+1]] = WALL }
+rows.times { |y| board[pos y+1, 1] = board[pos y+1, cols] = WALL }
+cols.times { |x| board[pos 1, x+1] = board[pos rows, x+1] = WALL }
 
 # gotsta get fed
 define_method :find_a_place_to_stash_some_food! do
   loop do
-    p = [rand(rows).succ, rand(cols).succ]
+    p = pos rand(rows).succ, rand(cols).succ
     break p if board[p] == FLOOR
   end
 end
@@ -127,7 +141,7 @@ board[find_a_place_to_stash_some_food!] = FOOD
 # print the initial board
 1.upto rows do |y|
   1.upto cols do |x|
-    print "#{to y, x}#{board[[y, x]]}"
+    print "#{to y, x}#{board[pos y, x]}"
   end
 end
 
