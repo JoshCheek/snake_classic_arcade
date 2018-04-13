@@ -22,17 +22,18 @@ Position = Struct.new :y, :x do
   alias to_hash to_h
 
   def -@
-    Position.new -y, -x
+    pos -y, -x
   end
 
-  def +(pos)
-    Position.new y+pos.y, x+pos.x
+  def +(y:, x:)
+    pos y+y(), x+x()
   end
 end
 
 def pos(y, x)
   Position.new y, x
 end
+
 UP    = pos -1,  0 # origin on the terminal is at the top-right, so -y to go down
 DOWN  = pos  1,  0
 LEFT  = pos  0, -1
@@ -57,7 +58,7 @@ Item = Struct.new :type, :duration, :obstructs, :str do
   end
 
   private def new(**overrides)
-    self.class.new(to_h.merge overrides)
+    self.class.new **to_h, **overrides
   end
 end
 
