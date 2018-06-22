@@ -187,6 +187,7 @@ updater = Thread.new do
     if current.obstructs?
       snake = snake.die
     elsif current == FOOD
+      board.each { |pos, item| board[pos] = item.grow 7 if Snake === item }
       snake      = snake.grow 7
       pos        = find_a_place_to_stash_some_food!
       board[pos] = FOOD
