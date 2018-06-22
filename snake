@@ -26,7 +26,7 @@ Position = Struct.new :y, :x do
   end
 
   def +(y:, x:)
-    pos y+y(), x+x()
+    pos y+self.y, x+self.x
   end
 end
 
@@ -34,7 +34,7 @@ def pos(y, x)
   Position.new y, x
 end
 
-UP    = pos -1,  0 # origin on the terminal is at the top-right, so -y to go down
+UP    = pos -1,  0 # negative b/c origin on the terminal is at the top-left
 DOWN  = pos  1,  0
 LEFT  = pos  0, -1
 RIGHT = pos  0,  1
@@ -68,8 +68,10 @@ class Snake < Item
   alias length duration
 
   def initialize(position:, direction:, next_direction:nil, expired:false, length:nil, **rest)
-    @position, @direction, @next_direction,            @expired =
-     position,  direction,  next_direction||direction,  expired
+    @position       = position
+    @direction      = direction
+    @next_direction = next_direction||direction
+    @expired        = expired
     rest[:duration] = length || rest[:duration]
     super type: :snake, obstructs: true, **rest
   end
@@ -90,7 +92,7 @@ class Snake < Item
   end
 
   def face(direction)
-    return self if direction() == -direction
+    return self if self.direction == -direction
     new next_direction: direction
   end
 
@@ -155,7 +157,7 @@ input_handler = Thread.new do
   Thread.abort_on_exception = true
   until snake.expired? || quit
     IO.select [$stdin]
-    valid_inputs = $stdin.readpartial(4096).scan(/\e\[[ABCD]|[hjklq#{?\C-c}#{?\C-d}]/)
+    valid_inputs = $stdin.readpartial(4096).scan(/\e\[[ABCD]|[hjklq\C-c\C-d]/)
     case valid_inputs.last
     when ?\C-c, ?\C-d, ?q then quit  = true
     when ?h, "\e[D"       then snake = snake.face LEFT
@@ -199,4 +201,6 @@ end
 input_handler.join
 updater.join
 
+# put the cursor at the bottom of the screen
+# so the shell prompt isn't drawn at some random line
 puts to(rows, 1)
