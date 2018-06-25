@@ -1,17 +1,18 @@
 #!/usr/bin/env ruby
 
 # ANSI stuffs!
-BLACK   = "\e[40m"
-RED     = "\e[41m"
-GREEN   = "\e[42m"
-YELLOW  = "\e[43m"
-BLUE    = "\e[44m"
-MAGENTA = "\e[45m"
-TEAL    = "\e[46m"
-WHITE   = "\e[47m"
+BLACK        = "\e[40m"
+RED          = "\e[41m"
+GREEN        = "\e[42m"
+YELLOW       = "\e[43m"
+BLUE         = "\e[44m"
+MAGENTA      = "\e[45m"
+TEAL         = "\e[46m"
+WHITE        = "\e[47m"
+RESET_COLORS = "\e[0m"
 
-HIDE_CURSOR = "\e[?25l"
-SHOW_CURSOR = "\e[?25h"
+HIDE_CURSOR  = "\e[?25l"
+SHOW_CURSOR  = "\e[?25h"
 
 def to(y, x)
   "\e[#{y};#{x*2-1}H"
@@ -201,6 +202,9 @@ end
 
 input_handler.join
 updater.join
+
+# clear out any remaining colours we set
+print RESET_COLORS
 
 # put the cursor at the bottom of the screen
 # so the shell prompt isn't drawn at some random line
